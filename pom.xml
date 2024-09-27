@@ -7,6 +7,7 @@
   <version>1.0-SNAPSHOT</version>
   <name>idm-operations</name>
   <url>http://maven.apache.org</url>
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -16,7 +17,79 @@
     </dependency>
   </dependencies>
 
+  <repositories>
+    <repository>
+      <id>central</id>
+      <url>http://repo1.maven.org/maven2</url>
+    </repository>
+  </repositories>
+
+  <properties>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <maven.antrun.plugin.version>1.8</maven.antrun.plugin.version>
+    <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
+
+    <main.class>de.fentacore.App</main.class>
+  </properties>
   <build>
     <defaultGoal>clean compile</defaultGoal>
+
+    <!-- Create Directories -->
+    <!-- mvn antrun:run@createFolders -->
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>${maven.antrun.plugin.version}</version>
+        <executions>
+          <execution>
+            <id>createFolders</id>
+            <phase>generate-sources</phase>
+            <configuration>
+              <tasks>
+                <mkdir dir="./src/main/java"/>
+                <mkdir dir="./src/main/resources"/>
+                <mkdir dir="./src/test/java"/>
+                <mkdir dir="./src/test/resources"/>
+                <mkdir dir="./target"/>
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Compile -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven.compiler.plugin.version}</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <testExcludes>
+            <testExclude>**/*Test.java</testExclude>
+          </testExcludes>
+        </configuration>
+      </plugin>
+
+      <!-- Run -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.1</version>
+        <configuration>
+          <mainClass>${main.class}</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+
+
   </build>
 </project>
