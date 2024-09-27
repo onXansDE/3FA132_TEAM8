@@ -1,13 +1,12 @@
 package de.fentacore;
 
-/**
- * Hello world!
- *
- */
-public class App 
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
+public class App {
+    public String greet(String name) {
+        return "Hello, " + name + "!";
+    }
+
+    public static void main(String[] args) {
+        App app = new App();
+        System.out.println(app.greet("World"));
     }
 }

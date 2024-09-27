@@ -10,9 +10,15 @@
 
   <dependencies>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -31,9 +37,13 @@
 
     <maven.antrun.plugin.version>1.8</maven.antrun.plugin.version>
     <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
+    <maven.compiler.surefire.version>3.3.0</maven.compiler.surefire.version>
 
     <main.class>de.fentacore.App</main.class>
+
+    <junit-jupiter.version>5.10.3</junit-jupiter.version>
   </properties>
+
   <build>
     <defaultGoal>clean compile</defaultGoal>
 
@@ -49,13 +59,13 @@
             <id>createFolders</id>
             <phase>generate-sources</phase>
             <configuration>
-              <tasks>
+              <target>
                 <mkdir dir="./src/main/java"/>
                 <mkdir dir="./src/main/resources"/>
                 <mkdir dir="./src/test/java"/>
                 <mkdir dir="./src/test/resources"/>
                 <mkdir dir="./target"/>
-              </tasks>
+              </target>
             </configuration>
             <goals>
               <goal>run</goal>
@@ -73,9 +83,11 @@
           <source>${maven.compiler.source}</source>
           <target>${maven.compiler.target}</target>
           <encoding>${project.build.sourceEncoding}</encoding>
+          <!--
           <testExcludes>
             <testExclude>**/*Test.java</testExclude>
           </testExcludes>
+            -->
         </configuration>
       </plugin>
 
@@ -88,8 +100,27 @@
           <mainClass>${main.class}</mainClass>
         </configuration>
       </plugin>
+
+      <!-- Test - TXT, XML -->
+      <!-- mvn test -->
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven.compiler.surefire.version}</version>
+          <configuration>
+          <includes>
+              <include>**/*Test.java</include>
+          </includes>
+          </configuration>
+      </plugin>
+
+      <!-- Test - HTML -->
+      <!-- mvn surefire-report:report -->
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-report-plugin</artifactId>
+          <version>${maven.compiler.surefire.version}</version>
+      </plugin>
     </plugins>
-
-
   </build>
 </project>
