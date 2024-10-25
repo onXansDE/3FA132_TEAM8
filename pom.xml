@@ -40,14 +40,14 @@
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <maven.antrun.plugin.version>1.8</maven.antrun.plugin.version>
-    <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
-    <maven.compiler.surefire.version>3.3.0</maven.compiler.surefire.version>
+    <maven.antrun.plugin.version>3.1.0</maven.antrun.plugin.version>
+    <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+    <maven.compiler.surefire.version>3.1.2</maven.compiler.surefire.version>
 
     <main.class>de.fentacore.App</main.class>
 
     <junit-jupiter.version>5.10.3</junit-jupiter.version>
-    <jacoco.version>0.8.12</jacoco.version>
+    <jacoco.version>0.8.11</jacoco.version>
   </properties>
 
   <profiles>
@@ -152,8 +152,27 @@
           </includes>
           </configuration>
       </plugin>
+
+      <!-- JaCoCo Plugin -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
-
-
   </build>
 </project>
