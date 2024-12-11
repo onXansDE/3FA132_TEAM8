@@ -19,8 +19,14 @@ public class App {
         CustomerDAO customerDAO = new CustomerDAO();
         ReadingDAO readingDAO = new ReadingDAO();
 
-        if(!DatabaseConfig.checkTablesExist()) {
+        // Check if required tables exist
+        boolean tablesExist = DatabaseConfig.checkTablesExist();
+        if (!tablesExist) {
+            System.out.println("Required tables do not exist. Creating tables...");
             DatabaseConfig.createTables();
+            System.out.println("Tables created successfully.");
+        } else {
+            System.out.println("All required tables already exist.");
         }
 
         // Create a new customer
