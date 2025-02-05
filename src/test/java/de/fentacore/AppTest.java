@@ -1,6 +1,7 @@
 package de.fentacore;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AppTest {
@@ -11,9 +12,4 @@ public class AppTest {
         String result = app.greet("JUnit");
         assertEquals("Hello, JUnit!", result);
     }
-
-
-
-
-
 }
