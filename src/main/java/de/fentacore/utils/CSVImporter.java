@@ -76,6 +76,9 @@ public class CSVImporter {
     }
 
     public void importReadings(String csvPath) {
+
+
+
         try (BufferedReader reader = getResourceReader(csvPath)) {
             String fileName = csvPath.toLowerCase();
             IReading.KindOfMeter kindOfMeter = determineMeterKindFromFilename(fileName);
