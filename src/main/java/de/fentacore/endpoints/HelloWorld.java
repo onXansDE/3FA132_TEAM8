@@ -7,7 +7,7 @@ import jakarta.ws.rs.core.MediaType;
 
 
 @Path("world")
-public class HelloWorldRessource {
+public class HelloWorld {
 
     @GET
     @Path("hello")
