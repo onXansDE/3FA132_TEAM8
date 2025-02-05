@@ -1,38 +1,48 @@
 package de.fentacore.utils;
 
+import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
+import org.glassfish.jersey.server.ResourceConfig;
+import de.fentacore.endpoints.HelloWorldRessource;
+
+import java.net.URI;
+
+import com.sun.net.httpserver.HttpServer;
+
 public class Server {
+    private static HttpServer server;
 
-    private static boolean isRunning = false;
-    private static String serverUrl;
+    public static void main(final String[] args) {
+        startServer();
 
-    /**
-     * Startet den Server mit der angegebenen URL.
-     */
-    public static void startServer(String url) {
-        if (!isRunning) {
-            serverUrl = url;
-            isRunning = true;
-            System.out.println("Server gestartet unter: " + serverUrl);
-        } else {
-            System.out.println("Server läuft bereits unter: " + serverUrl);
-        }
     }
 
-    /**
-     * Stoppt den aktuell laufenden Server.
-     */
+    // Methode zum Starten des Servers
+    public static void startServer() {
+        final String pack = "dev.bsinfo.rest.ressource";
+        String url = "http://localhost:8080/rest";
+
+        System.out.println("Starting server...");
+        System.out.println(url);
+
+        final ResourceConfig rc = new ResourceConfig().register(HelloWorldRessource.class);
+
+
+        server = JdkHttpServerFactory.createHttpServer(URI.create(url), rc);
+
+        System.out.println("Ready for Requests....");
+    }
+
+    // Methode zum Stoppen des Servers
     public static void stopServer() {
-        if (isRunning) {
-            System.out.println("Server gestoppt: " + serverUrl);
-            isRunning = false;
-            serverUrl = null;
+
+        if (server != null) {
+            System.out.println("Stopping server...");
+            server.stop(0);  // 0 bedeutet sofortiges Stoppen
+            System.out.println("Server stopped.");
         } else {
-            System.out.println("Kein Server läuft aktuell.");
+            System.out.println("Server is not running.");
         }
+
     }
 
-    public static void main(String[] args) {
-        startServer("http://localhost:420");
-        stopServer();
-    }
 }
