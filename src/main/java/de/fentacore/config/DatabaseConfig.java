@@ -57,7 +57,7 @@ public class DatabaseConfig {
 
     /**
      * Creates the 'customers' and 'readings' tables if they do not exist.
-     *
+     * <p>
      * This method will execute the DDL statements to create the required tables.
      * Adjust the DDL statements according to your schema and database dialect.
      */
@@ -100,6 +100,29 @@ public class DatabaseConfig {
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("Database connection issue when creating tables", e);
+        }
+    }
+
+    public static void deleteTables() {
+        String deleteReadingsTable = "DROP TABLE IF EXISTS readings;";
+        String deleteCustomersTable = "DROP TABLE IF EXISTS customers;";
+
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(deleteReadingsTable);
+                stmt.execute(deleteCustomersTable);
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                throw new RuntimeException("Failed to delete tables", e);
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Database connection issue when deleting tables", e);
         }
     }
 }
