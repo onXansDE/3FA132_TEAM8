@@ -15,12 +15,12 @@ public class DbSetup {
             DatabaseConfig.createTables();
 
             return Response.status(Response.Status.OK)
-                    .entity("Datenbank erfolgreich zurückgesetzt.")
+                    .entity("Successfully reset database.")
                     .build();
         } catch (Exception e) {
             e.printStackTrace();
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Fehler beim Zurücksetzen der Datenbank.")
+                    .entity("Error resetting database.")
                     .build();
         }
     }

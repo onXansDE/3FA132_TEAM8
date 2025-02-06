@@ -5,10 +5,10 @@ import java.time.LocalDate;
 public interface ICustomer extends IId {
 
    enum Gender {
-      D, // divers
-      M, // männlich
-      U, // unbekannt
-      W; // weiblich
+      D,
+      M,
+      U,
+      W
    }
 
    LocalDate getBirthDate();
