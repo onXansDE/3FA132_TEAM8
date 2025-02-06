@@ -18,8 +18,8 @@ import java.util.UUID;
 
 public class CSVImporter {
 
-    private CustomerDAO customerDAO = new CustomerDAO();
-    private ReadingDAO readingDAO = new ReadingDAO();
+    private final CustomerDAO customerDAO = new CustomerDAO();
+    private final ReadingDAO readingDAO = new ReadingDAO();
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 

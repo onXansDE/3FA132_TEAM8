@@ -15,35 +15,27 @@ public class Server {
     private static HttpServer server;
 
     public static void main(final String[] args) {
-        startServer();
-
+        startServer("http://localhost:8080/rest");
     }
 
-    // Methode zum Starten des Servers
-    public static void startServer() {
-        final String pack = "dev.bsinfo.rest.ressource";
-        String url = "http://localhost:8080/rest";
-
+    public static void startServer(String url) {
         System.out.println("Starting server...");
         System.out.println(url);
-
 
         final ResourceConfig rc = new ResourceConfig()
                 .register(HelloWorld.class)
                 .register(DbSetup.class);
 
-     
         server = JdkHttpServerFactory.createHttpServer(URI.create(url), rc);
 
         System.out.println("Ready for Requests....");
     }
 
-    // Methode zum Stoppen des Servers
     public static void stopServer() {
 
         if (server != null) {
             System.out.println("Stopping server...");
-            server.stop(0);  // 0 bedeutet sofortiges Stoppen
+            server.stop(0);
             System.out.println("Server stopped.");
         } else {
             System.out.println("Server is not running.");

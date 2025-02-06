@@ -4,7 +4,6 @@ import de.fentacore.config.DatabaseConfig;
 import de.fentacore.interfaces.IReading;
 import de.fentacore.interfaces.ICustomer;
 import de.fentacore.model.Reading;
-import de.fentacore.model.Customer;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -13,7 +12,7 @@ import java.util.UUID;
 
 public class ReadingDAO implements IReadingDAO {
 
-    private ICustomerDAO customerDAO = new CustomerDAO();
+    private final ICustomerDAO customerDAO = new CustomerDAO();
 
     @Override
     public IReading create(IReading reading) {
@@ -52,8 +51,7 @@ public class ReadingDAO implements IReadingDAO {
             stmt.setString(1, id.toString());
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Reading r = mapResultSetToReading(rs);
-                    return r;
+                    return mapResultSetToReading(rs);
                 }
             }
         } catch (SQLException e) {
@@ -143,8 +141,8 @@ public class ReadingDAO implements IReadingDAO {
     private Reading mapResultSetToReading(ResultSet rs) throws SQLException {
         Reading r = new Reading();
         r.setId(UUID.fromString(rs.getString("id")));
-        UUID custId = UUID.fromString(rs.getString("customer_id"));
-        ICustomer c = customerDAO.findById(custId);
+        UUID customId = UUID.fromString(rs.getString("customer_id"));
+        ICustomer c = customerDAO.findById(customId);
         r.setCustomer(c);
         r.setComment(rs.getString("comment"));
         Date dor = rs.getDate("date_of_reading");
