@@ -2,6 +2,7 @@ package de.fentacore.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import de.fentacore.interfaces.IReading;
 import de.fentacore.interfaces.ICustomer;
 
@@ -16,6 +17,7 @@ public class Reading implements IReading {
     private String comment;
     
     @JsonProperty("customer")
+    @JsonDeserialize(as = Customer.class)
     private ICustomer customer;
     
     @JsonProperty("dateOfReading")
