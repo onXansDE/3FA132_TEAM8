@@ -1,5 +1,7 @@
 package de.fentacore.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import de.fentacore.interfaces.IReading;
 import de.fentacore.interfaces.ICustomer;
 
@@ -7,13 +9,29 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public class Reading implements IReading {
+    @JsonProperty("id")
     private UUID id;
+    
+    @JsonProperty("comment")
     private String comment;
+    
+    @JsonProperty("customer")
     private ICustomer customer;
+    
+    @JsonProperty("dateOfReading")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dateOfReading;
+    
+    @JsonProperty("kindOfMeter")
     private KindOfMeter kindOfMeter;
+    
+    @JsonProperty("meterCount")
     private Double meterCount;
+    
+    @JsonProperty("meterId")
     private String meterId;
+    
+    @JsonProperty("substitute")
     private Boolean substitute;
 
     @Override
