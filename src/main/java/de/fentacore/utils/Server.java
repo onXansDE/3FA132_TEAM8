@@ -1,9 +1,9 @@
 package de.fentacore.utils;
 
+import de.fentacore.endpoints.Customers;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
-import de.fentacore.endpoints.HelloWorld;
 import de.fentacore.endpoints.DbSetup;
 
 
@@ -23,8 +23,8 @@ public class Server {
         System.out.println(url);
 
         final ResourceConfig rc = new ResourceConfig()
-                .register(HelloWorld.class)
-                .register(DbSetup.class);
+                .register(DbSetup.class)
+                .register(Customers.class);
 
         server = JdkHttpServerFactory.createHttpServer(URI.create(url), rc);
 

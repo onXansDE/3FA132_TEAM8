@@ -1,0 +1,21 @@
+meta {
+  name: Create Customer
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/rest/customer/create
+  body: json
+  auth: none
+}
+
+body:json {
+  {"customer": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "birthDate": "01.02.2024",
+      "gender": "M"
+    }
+  }
+}

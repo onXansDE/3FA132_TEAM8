@@ -1,15 +1,27 @@
 package de.fentacore.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import de.fentacore.interfaces.ICustomer;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
 public class Customer implements ICustomer {
+    @JsonProperty("id")
     private UUID id;
+    
+    @JsonProperty("firstName")
     private String firstName;
+    
+    @JsonProperty("lastName")
     private String lastName;
+    
+    @JsonProperty("birthDate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
+    
+    @JsonProperty("gender")
     private Gender gender;
 
     @Override
