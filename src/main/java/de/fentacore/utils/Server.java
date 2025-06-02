@@ -32,15 +32,19 @@ public class Server {
     }
 
     public static void stopServer() {
-
         if (server != null) {
-            System.out.println("Stopping server...");
-            server.stop(0);
-            System.out.println("Server stopped.");
+            try {
+                System.out.println("Stopping server...");
+                server.stop(0);
+                System.out.println("Server stopped.");
+            } catch (Exception e) {
+                System.out.println("Error stopping server: " + e.getMessage());
+            } finally {
+                server = null;
+            }
         } else {
             System.out.println("Server is not running.");
         }
-
     }
 
 }
