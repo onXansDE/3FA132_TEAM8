@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
 import { customerApi } from '../services/api';
-import { Customer, Gender } from '../types';
+import { Customer, Gender, Reading } from '../types';
 import toast from 'react-hot-toast';
 import CustomerForm from '../components/CustomerForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CsvImport from '../components/CsvImport';
+import { useNavigate } from 'react-router-dom';
 
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -13,6 +15,9 @@ const Customers: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCustomers();
@@ -67,6 +72,15 @@ const Customers: React.FC = () => {
     }
   };
 
+  const handleBulkImport = async (importData: Customer[] | Reading[]) => {
+    // The backend handles the import, so we just need to refresh the data
+    fetchCustomers();
+  };
+
+  const handleCustomerClick = (customerId: string) => {
+    navigate(`/readings?customer=${customerId}`);
+  };
+
   const filteredCustomers = customers.filter(customer =>
     customer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.lastName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -99,7 +113,14 @@ const Customers: React.FC = () => {
             Manage customer information and profiles
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex space-x-3">
+          <button
+            onClick={() => setShowCsvImport(true)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
+          </button>
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
@@ -153,7 +174,11 @@ const Customers: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={customer.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleCustomerClick(customer.id)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {customer.firstName} {customer.lastName}
@@ -166,7 +191,7 @@ const Customers: React.FC = () => {
                       {getGenderLabel(customer.gender)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => setEditingCustomer(customer)}
                           className="text-primary-600 hover:text-primary-900"
@@ -213,6 +238,15 @@ const Customers: React.FC = () => {
           message={`Are you sure you want to delete ${deletingCustomer.firstName} ${deletingCustomer.lastName}? This action cannot be undone.`}
           onConfirm={() => handleDeleteCustomer(deletingCustomer)}
           onCancel={() => setDeletingCustomer(null)}
+        />
+      )}
+
+      {/* CSV Import */}
+      {showCsvImport && (
+        <CsvImport
+          type="customers"
+          onImport={handleBulkImport}
+          onCancel={() => setShowCsvImport(false)}
         />
       )}
     </div>

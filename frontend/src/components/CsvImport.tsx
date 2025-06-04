@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Download, AlertCircle, CheckCircle } from 'lucide-react';
-import Papa from 'papaparse';
-import { Customer, Reading, Gender, KindOfMeter } from '../types';
+import { Upload, X, Download, CheckCircle } from 'lucide-react';
+import { csvImportApi } from '../services/api';
+import { Customer, Reading } from '../types';
 import toast from 'react-hot-toast';
 
 interface CsvImportProps {
@@ -11,201 +11,73 @@ interface CsvImportProps {
   onCancel: () => void;
 }
 
-interface ParsedCustomer {
-  firstName: string;
-  lastName: string;
-  birthDate: string;
-  gender: string;
-  errors: string[];
-}
-
-interface ParsedReading {
-  customerName: string;
-  dateOfReading: string;
-  meterId: string;
-  kindOfMeter: string;
-  meterCount: string;
-  substitute: string;
-  comment?: string;
-  errors: string[];
-}
-
 const CsvImport: React.FC<CsvImportProps> = ({ type, customers = [], onImport, onCancel }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<(ParsedCustomer | ParsedReading)[]>([]);
+  const [csvContent, setCsvContent] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [validData, setValidData] = useState<(Customer | Reading)[]>([]);
+  const [previewLines, setPreviewLines] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const customerTemplate = `firstName,lastName,birthDate,gender
-John,Doe,1990-01-15,M
-Jane,Smith,1985-07-22,W
-Alex,Johnson,1992-03-10,D`;
+  const customerTemplate = `UUID,Anrede,Vorname,Nachname,Geburtsdatum
+ec617965-88b4-4721-8158-ee36c38e4db3,Herr,Pumukel,Kobold,21.02.1962
+848c39a1-0cbb-427a-ac6f-a88941943dc8,Herr,André,Schöne,16.02.1928
+78dff413-7409-4313-90db-5ec95e969d6d,Frau,Antje,Kittler,12.09.1968
+8670e527-3f5e-44cc-ae61-fba80268bd7f,k.A.,Max,Mustermann,15.06.1990`;
 
-  const readingTemplate = `customerName,dateOfReading,meterId,kindOfMeter,meterCount,substitute,comment
-John Doe,2024-01-15,METER001,STROM,150.5,false,Regular reading
-Jane Smith,2024-01-15,METER002,WASSER,75.2,true,Estimated reading`;
+  const readingTemplate = `"Kunde";"CUSTOMER_UUID_HERE";
+"Zählernummer";"METER_ID_HERE";
+;;
+"Datum";"Zählerstand";"Kommentar"
+01.02.2018;473;
+01.04.2018;495;
+01.05.2018;505;"Testablesung"`;
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile && selectedFile.type === 'text/csv') {
       setFile(selectedFile);
-      parseFile(selectedFile);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setCsvContent(content);
+        
+        // Show preview of first few lines
+        const lines = content.split('\n').slice(0, 10);
+        setPreviewLines(lines);
+      };
+      reader.readAsText(selectedFile);
     } else {
       toast.error('Please select a valid CSV file');
     }
   };
 
-  const parseFile = (file: File) => {
-    setIsProcessing(true);
-    
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const data = results.data as any[];
-        if (type === 'customers') {
-          processCustomers(data);
-        } else {
-          processReadings(data);
-        }
-        setIsProcessing(false);
-      },
-      error: (error) => {
-        toast.error(`CSV parsing error: ${error.message}`);
-        setIsProcessing(false);
-      }
-    });
-  };
-
-  const processCustomers = (data: any[]) => {
-    const processed: ParsedCustomer[] = data.map((row, index) => {
-      const errors: string[] = [];
-      
-      if (!row.firstName?.trim()) errors.push('First name is required');
-      if (!row.lastName?.trim()) errors.push('Last name is required');
-      if (!row.birthDate?.trim()) errors.push('Birth date is required');
-      if (!row.gender?.trim()) errors.push('Gender is required');
-      
-      if (row.birthDate && !isValidDate(row.birthDate)) {
-        errors.push('Invalid date format (use YYYY-MM-DD)');
-      }
-      
-      if (row.gender && !['M', 'W', 'D', 'U'].includes(row.gender.toUpperCase())) {
-        errors.push('Gender must be M, W, D, or U');
-      }
-
-      return {
-        firstName: row.firstName?.trim() || '',
-        lastName: row.lastName?.trim() || '',
-        birthDate: row.birthDate?.trim() || '',
-        gender: row.gender?.toUpperCase().trim() || '',
-        errors
-      };
-    });
-
-    setParsedData(processed);
-    
-    const valid: Customer[] = processed
-      .filter(item => item.errors.length === 0)
-      .map(item => ({
-        id: crypto.randomUUID(),
-        firstName: item.firstName,
-        lastName: item.lastName,
-        birthDate: item.birthDate,
-        gender: item.gender as Gender
-      }));
-    
-    setValidData(valid);
-  };
-
-  const processReadings = (data: any[]) => {
-    const processed: ParsedReading[] = data.map((row, index) => {
-      const errors: string[] = [];
-      
-      if (!row.customerName?.trim()) errors.push('Customer name is required');
-      if (!row.dateOfReading?.trim()) errors.push('Date of reading is required');
-      if (!row.meterId?.trim()) errors.push('Meter ID is required');
-      if (!row.kindOfMeter?.trim()) errors.push('Kind of meter is required');
-      if (!row.meterCount?.trim()) errors.push('Meter count is required');
-      if (row.substitute === undefined || row.substitute === null || row.substitute === '') {
-        errors.push('Substitute field is required');
-      }
-      
-      if (row.dateOfReading && !isValidDate(row.dateOfReading)) {
-        errors.push('Invalid date format (use YYYY-MM-DD)');
-      }
-      
-      if (row.kindOfMeter && !['STROM', 'WASSER', 'HEIZUNG', 'UNBEKANNT'].includes(row.kindOfMeter.toUpperCase())) {
-        errors.push('Kind of meter must be STROM, WASSER, HEIZUNG, or UNBEKANNT');
-      }
-      
-      if (row.meterCount && (isNaN(parseFloat(row.meterCount)) || parseFloat(row.meterCount) < 0)) {
-        errors.push('Meter count must be a positive number');
-      }
-      
-      const customer = customers.find(c => 
-        `${c.firstName} ${c.lastName}`.toLowerCase() === row.customerName?.toLowerCase().trim()
-      );
-      
-      if (row.customerName && !customer) {
-        errors.push('Customer not found (check spelling and case)');
-      }
-
-      return {
-        customerName: row.customerName?.trim() || '',
-        dateOfReading: row.dateOfReading?.trim() || '',
-        meterId: row.meterId?.trim() || '',
-        kindOfMeter: row.kindOfMeter?.toUpperCase().trim() || '',
-        meterCount: row.meterCount?.trim() || '',
-        substitute: row.substitute?.toString().toLowerCase().trim() || '',
-        comment: row.comment?.trim() || undefined,
-        errors
-      };
-    });
-
-    setParsedData(processed);
-    
-    const valid: Reading[] = processed
-      .filter(item => item.errors.length === 0)
-      .map(item => {
-        const customer = customers.find(c => 
-          `${c.firstName} ${c.lastName}`.toLowerCase() === item.customerName.toLowerCase()
-        )!;
-        
-        return {
-          id: crypto.randomUUID(),
-          customer,
-          dateOfReading: item.dateOfReading,
-          meterId: item.meterId,
-          kindOfMeter: item.kindOfMeter as KindOfMeter,
-          meterCount: parseFloat(item.meterCount),
-          substitute: item.substitute === 'true' || item.substitute === '1',
-          comment: item.comment
-        };
-      });
-    
-    setValidData(valid);
-  };
-
-  const isValidDate = (dateString: string): boolean => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime()) && dateString.match(/^\d{4}-\d{2}-\d{2}$/);
-  };
-
   const handleImport = async () => {
-    if (validData.length === 0) {
-      toast.error('No valid data to import');
+    if (!csvContent) {
+      toast.error('No CSV content to import');
       return;
     }
 
     try {
       setIsProcessing(true);
-      await onImport(validData);
-      toast.success(`Successfully imported ${validData.length} ${type}`);
+      
+      let result;
+      if (type === 'customers') {
+        result = await csvImportApi.importCustomers(csvContent);
+      } else {
+        result = await csvImportApi.importReadings(csvContent);
+      }
+
+      toast.success(result.message || `Successfully imported ${result.count} ${type}`);
+      
+      // Refresh the data in the parent component
+      await onImport([]); // Empty array since the backend handles the import
       onCancel();
-    } catch (error) {
-      toast.error(`Import failed: ${error}`);
+      
+    } catch (error: any) {
+      console.error('Import error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Import failed';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -222,9 +94,6 @@ Jane Smith,2024-01-15,METER002,WASSER,75.2,true,Estimated reading`;
     window.URL.revokeObjectURL(url);
   };
 
-  const errorCount = parsedData.filter(item => item.errors.length > 0).length;
-  const validCount = validData.length;
-
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-6 border w-full max-w-4xl shadow-lg rounded-md bg-white">
@@ -235,6 +104,24 @@ Jane Smith,2024-01-15,METER002,WASSER,75.2,true,Estimated reading`;
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
             <X className="h-6 w-6" />
           </button>
+        </div>
+
+        {/* Format Info */}
+        <div className="mb-6 p-4 bg-amber-50 rounded-lg">
+          <h4 className="text-sm font-medium text-amber-900 mb-2">Expected Format:</h4>
+          {type === 'customers' ? (
+            <div className="text-sm text-amber-800">
+              <p><strong>Headers:</strong> UUID,Anrede,Vorname,Nachname,Geburtsdatum</p>
+              <p><strong>Anrede:</strong> Herr, Frau, or k.A.</p>
+              <p><strong>Date format:</strong> DD.MM.YYYY (German format)</p>
+            </div>
+          ) : (
+            <div className="text-sm text-amber-800">
+              <p><strong>Special format:</strong> Customer UUID and meter number in first rows</p>
+              <p><strong>Readings:</strong> Datum;Zählerstand;Kommentar (semicolon separated)</p>
+              <p><strong>Date format:</strong> DD.MM.YYYY or YYYY-MM-DD</p>
+            </div>
+          )}
         </div>
 
         {/* Template Download */}
@@ -279,115 +166,58 @@ Jane Smith,2024-01-15,METER002,WASSER,75.2,true,Estimated reading`;
           </div>
         </div>
 
-        {/* Processing/Results */}
-        {isProcessing && (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-600">Processing file...</p>
-          </div>
-        )}
-
-        {file && parsedData.length > 0 && !isProcessing && (
-          <div className="space-y-4">
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-900">{parsedData.length}</div>
-                <div className="text-sm text-gray-600">Total Rows</div>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{validCount}</div>
-                <div className="text-sm text-green-600">Valid</div>
-              </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{errorCount}</div>
-                <div className="text-sm text-red-600">Errors</div>
-              </div>
-            </div>
-
-            {/* Preview Table */}
-            <div className="max-h-64 overflow-y-auto border rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    {type === 'customers' ? (
-                      <>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">First Name</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Last Name</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Birth Date</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Meter ID</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Count</th>
-                      </>
-                    )}
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Errors</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {parsedData.slice(0, 10).map((row, index) => (
-                    <tr key={index} className={row.errors.length > 0 ? 'bg-red-50' : 'bg-green-50'}>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {row.errors.length > 0 ? (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
-                      </td>
-                      {type === 'customers' ? (
-                        <>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedCustomer).firstName}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedCustomer).lastName}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedCustomer).birthDate}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedCustomer).gender}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedReading).customerName}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedReading).dateOfReading}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedReading).meterId}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedReading).kindOfMeter}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{(row as ParsedReading).meterCount}</td>
-                        </>
-                      )}
-                      <td className="px-3 py-2 text-sm text-red-600">
-                        {row.errors.join(', ')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {parsedData.length > 10 && (
-                <div className="px-3 py-2 text-sm text-gray-500 text-center border-t">
-                  ... and {parsedData.length - 10} more rows
+        {/* File Info & Preview */}
+        {file && csvContent && (
+          <div className="space-y-4 mb-6">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <div>
+                  <p className="text-sm font-medium text-green-900">File loaded: {file.name}</p>
+                  <p className="text-sm text-green-700">Size: {(file.size / 1024).toFixed(2)} KB</p>
+                  <p className="text-sm text-green-700">Lines: {csvContent.split('\n').length}</p>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={validCount === 0 || isProcessing}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                Import {validCount} {type === 'customers' ? 'Customers' : 'Readings'}
-              </button>
+            {/* Preview */}
+            <div className="border rounded-lg">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h4 className="text-sm font-medium text-gray-900">Preview (first 10 lines)</h4>
+              </div>
+              <div className="p-4">
+                <pre className="text-xs text-gray-600 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                  {previewLines.join('\n')}
+                </pre>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Processing Status */}
+        {isProcessing && (
+          <div className="text-center py-4 mb-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-2 text-sm text-gray-600">Processing import on server...</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={!csvContent || isProcessing}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? 'Importing...' : `Import ${type === 'customers' ? 'Customers' : 'Readings'}`}
+          </button>
+        </div>
       </div>
     </div>
   );

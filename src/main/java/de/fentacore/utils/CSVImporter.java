@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -36,6 +37,133 @@ public class CSVImporter {
         importReadings(resourcePath + "/strom.csv");
         importReadings(resourcePath + "/wasser.csv");
         // Add more if needed.
+    }
+
+    /**
+     * Import customers from CSV string content
+     * @param csvContent the CSV content as string
+     * @return number of customers imported
+     */
+    public int importCustomersFromString(String csvContent) {
+        int importedCount = 0;
+        try (BufferedReader reader = new BufferedReader(new StringReader(csvContent))) {
+            String line = reader.readLine(); // read header
+            // expect "UUID,Anrede,Vorname,Nachname,Geburtsdatum"
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                // Split by comma
+                String[] parts = line.split(",");
+                if (parts.length < 4) {
+                    // Not enough columns (some lines may have no birthdate)
+                    continue;
+                }
+
+                String uuidStr = parts[0].trim();
+                String anrede = parts[1].trim();
+                String vorname = parts[2].trim();
+                String nachname = parts[3].trim();
+                String geburtsdatum = (parts.length > 4) ? parts[4].trim() : "";
+
+                Customer c = new Customer();
+                c.setId(UUID.fromString(uuidStr));
+                c.setFirstName(vorname);
+                c.setLastName(nachname);
+                c.setGender(mapAnredeToGender(anrede));
+                c.setBirthDate(parseDateOrNull(geburtsdatum));
+
+                customerDAO.create(c);
+                importedCount++;
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return importedCount;
+    }
+
+    /**
+     * Import readings from CSV string content
+     * @param csvContent the CSV content as string
+     * @return number of readings imported
+     */
+    public int importReadingsFromString(String csvContent) {
+        int importedCount = 0;
+        try (BufferedReader reader = new BufferedReader(new StringReader(csvContent))) {
+            // Determine meter kind from content analysis
+            IReading.KindOfMeter kindOfMeter = determineMeterKindFromContent(csvContent);
+
+            UUID customerId = null;
+            String meterId = null;
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.equals(";;")) continue;
+
+                // "Kunde";"ec617965-88b4-4721-8158-ee36c38e4db3";
+                // "Zählernummer";"Xr-2018-2312456ab";
+                if (line.startsWith("\"Kunde\"") || line.startsWith("Kunde")) {
+                    String[] parts = line.split(";");
+                    if (parts.length > 1) {
+                        customerId = extractUuid(parts[1]);
+                    }
+                } else if (line.startsWith("\"Zählernummer\"") || line.startsWith("Zählernummer")) {
+                    String[] parts = line.split(";");
+                    if (parts.length > 1) {
+                        meterId = stripQuotes(parts[1]);
+                    }
+                } else if (line.contains("Datum") && line.contains("Zählerstand")) {
+                    // This is the header line for readings
+                    break;
+                }
+            }
+
+            if (customerId == null || meterId == null) {
+                System.out.println("Could not extract customerId or meterId from CSV content");
+                return importedCount;
+            }
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                String[] parts = line.split(";");
+                if (parts.length < 2) {
+                    continue;
+                }
+
+                String dateStr = stripQuotes(parts[0].trim());
+                String readingStr = parts.length > 1 ? parts[1].trim() : "";
+                String comment = parts.length > 2 ? stripQuotes(parts[2].trim()) : "";
+
+                if (dateStr.isEmpty() || readingStr.isEmpty()) {
+                    continue;
+                }
+
+                LocalDate date = parseDateOrNull(dateStr);
+                Double meterCount = parseDoubleWithComma(readingStr);
+
+                Reading r = new Reading();
+                r.setId(UUID.randomUUID());
+                r.setCustomer(customerDAO.findById(customerId));
+                r.setMeterId(meterId);
+                r.setKindOfMeter(kindOfMeter);
+                r.setDateOfReading(date);
+                r.setMeterCount(meterCount);
+                r.setComment(comment);
+                r.setSubstitute(false); // Not indicated otherwise
+
+                readingDAO.create(r);
+                importedCount++;
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return importedCount;
     }
 
     public void importCustomers(String csvPath) {
@@ -77,8 +205,6 @@ public class CSVImporter {
 
     public void importReadings(String csvPath) {
 
-
-
         try (BufferedReader reader = getResourceReader(csvPath)) {
             String fileName = csvPath.toLowerCase();
             IReading.KindOfMeter kindOfMeter = determineMeterKindFromFilename(fileName);
@@ -113,7 +239,6 @@ public class CSVImporter {
                 System.out.println("Could not extract customerId or meterId from file: " + csvPath);
                 return;
             }
-
 
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
@@ -208,4 +333,15 @@ public class CSVImporter {
         return IReading.KindOfMeter.UNBEKANNT;
     }
 
+    private IReading.KindOfMeter determineMeterKindFromContent(String content) {
+        String contentLower = content.toLowerCase();
+        if (contentLower.contains("mst") || contentLower.contains("kwh") || contentLower.contains("strom")) {
+            return IReading.KindOfMeter.STROM;
+        } else if (contentLower.contains("m³") || contentLower.contains("wasser")) {
+            return IReading.KindOfMeter.WASSER;
+        } else if (contentLower.contains("xr") || contentLower.contains("mwh") || contentLower.contains("heizung")) {
+            return IReading.KindOfMeter.HEIZUNG;
+        }
+        return IReading.KindOfMeter.UNBEKANNT;
+    }
 }

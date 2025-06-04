@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Search, Filter, Users, Activity } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, Users, Activity, Upload } from 'lucide-react';
 import { readingApi, customerApi } from '../services/api';
 import { Reading, Customer, KindOfMeter } from '../types';
 import toast from 'react-hot-toast';
 import ReadingForm from '../components/ReadingForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CsvImport from '../components/CsvImport';
+import { useSearchParams } from 'react-router-dom';
 
 const Readings: React.FC = () => {
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -14,6 +16,7 @@ const Readings: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingReading, setEditingReading] = useState<Reading | null>(null);
   const [deletingReading, setDeletingReading] = useState<Reading | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
   const [filters, setFilters] = useState({
     customer: '',
     kindOfMeter: '',
@@ -22,9 +25,24 @@ const Readings: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
+  const searchParams = useSearchParams()[0];
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Handle URL parameters - if customer is specified, set it in filters
+    const customerIdFromUrl = searchParams.get('customer');
+    if (customerIdFromUrl && customers.length > 0) {
+      // Check if the customer exists in our customer list
+      const customerExists = customers.find(c => c.id === customerIdFromUrl);
+      if (customerExists) {
+        setFilters(prev => ({ ...prev, customer: customerIdFromUrl }));
+        setShowFilters(true); // Show filters so user can see the selected customer
+      }
+    }
+  }, [searchParams, customers]);
 
   useEffect(() => {
     fetchReadings();
@@ -123,6 +141,11 @@ const Readings: React.FC = () => {
     }
   };
 
+  const handleBulkImport = async (importData: Customer[] | Reading[]) => {
+    // The backend handles the import, so we just need to refresh the data
+    fetchReadings();
+  };
+
   const filteredReadings = readings.filter(reading =>
     reading.customer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     reading.customer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,7 +193,14 @@ const Readings: React.FC = () => {
             Manage meter readings and consumption data - readings are loaded per customer
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex space-x-3">
+          <button
+            onClick={() => setShowCsvImport(true)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Import CSV
+          </button>
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
@@ -403,6 +433,16 @@ const Readings: React.FC = () => {
           message={`Are you sure you want to delete this reading for ${deletingReading.customer.firstName} ${deletingReading.customer.lastName}? This action cannot be undone.`}
           onConfirm={() => handleDeleteReading(deletingReading)}
           onCancel={() => setDeletingReading(null)}
+        />
+      )}
+
+      {/* CSV Import */}
+      {showCsvImport && (
+        <CsvImport
+          type="readings"
+          customers={customers}
+          onImport={handleBulkImport}
+          onCancel={() => setShowCsvImport(false)}
         />
       )}
     </div>

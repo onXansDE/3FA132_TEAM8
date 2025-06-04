@@ -1,6 +1,8 @@
 package de.fentacore.utils;
 
 import de.fentacore.endpoints.Customers;
+import de.fentacore.endpoints.Readings;
+import de.fentacore.rest.CsvImportEndpoint;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -24,7 +26,9 @@ public class Server {
 
         final ResourceConfig rc = new ResourceConfig()
                 .register(DbSetup.class)
-                .register(Customers.class);
+                .register(Customers.class)
+                .register(Readings.class)
+                .register(CsvImportEndpoint.class);
 
         server = JdkHttpServerFactory.createHttpServer(URI.create(url), rc);
 

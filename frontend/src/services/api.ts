@@ -83,4 +83,33 @@ export const readingApi = {
   },
 };
 
-export default api; 
+export default api;
+
+// CSV Import API
+export const csvImportApi = {
+  importCustomers: async (csvContent: string): Promise<{ message: string; count: number }> => {
+    const response = await api.post('/import/customers', csvContent, {
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
+    return response.data;
+  },
+
+  importReadings: async (csvContent: string): Promise<{ message: string; count: number }> => {
+    const response = await api.post('/import/readings', csvContent, {
+      headers: {
+        'Content-Type': 'text/plain'
+      }
+    });
+    return response.data;
+  },
+};
+
+// Database Setup API
+export const dbSetupApi = {
+  resetDatabase: async (): Promise<string> => {
+    const response = await api.delete('/setupDB');
+    return response.data;
+  },
+}; 
