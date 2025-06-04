@@ -2,3 +2,4 @@
 *.iml
 .idea
 .DS_STORE
+/frontend/node_modules
